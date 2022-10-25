@@ -1,0 +1,96 @@
+name: Production Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Download dotenv
+        run: |
+          curl -o dotenv https://raw.githubusercontent.com/bashup/dotenv/master/dotenv
+          chmod +x dotenv
+          cp .env.example .env
+
+      - name: Set environment variables
+        run: ./dotenv -f .env set
+          APP_ENV=production
+          APP_KEY=base64:NJHWdHd7u0SDRS9zoHzZ4jgwfgO2xqR/xuoH1wMaWng=
+          APP_DEBUG=false
+          APP_URL=http://localhost:8000
+          LOG_CHANNEL=daily
+          DB_HOST=staging-db.cp6jaud0mxvl.ap-southeast-1.rds.amazonaws.com
+          DB_DATABASE=car-walyaung
+          DB_USERNAME=${{ secrets.STAGING_DB_USERNAME }}
+          DB_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }}
+          CACHE_DRIVER=file
+          FILESYSTEM_DISK=s3
+          QUEUE_CONNECTION=sync
+          SESSION_DRIVER=file
+          REDIS_HOST=${{ secrets.STAGING_REDIS_HOST }}
+          AWS_ACCESS_KEY_ID=${{ secrets.STAGING_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.STAGING_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION=ap-southeast-1
+          AWS_BUCKET=walyaung-storage-staging
+          LOG_SLACK_WEBHOOK_URL=https://hooks.slack.com/services/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
+          AWS_URL=https://walyaung-images.hivestage.com/
+          VMG_SMS_BASE_URL=http://api.vmgmyanmar.com/api
+          VMG_SMS_API_TOKEN=${{ secrets.STAGING_VMG_SMS_API_TOKEN }}
+          BUILD_NUMBER=${{ github.run_number }}
+
+      - name: Generate deployment package
+        run: zip -r application.zip . -x '*.git*' 'dotenv'
+
+      - name: Deploy to Heroku
+        # You may pin to the exact commit or the version.
+        # uses: AkhileshNS/heroku-deploy@79ef2ae4ff9b897010907016b268fd0f88561820
+        uses: AkhileshNS/heroku-deploy@v3.12.12
+        with:
+          # This will be used for authentication. You can find it in your heroku homepage account settings
+          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+          # Email that you use with heroku
+          heroku_email: ${{ secrets.HEROKU_EMAIL }}
+          # The appname to use for deploying/updating
+          heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
+          # An optional buildpack to use when creating the heroku application
+#           buildpack: # optional
+          # The branch that you would like to deploy to Heroku
+#           branch: # optional, default is HEAD
+          # Set this to true if you don't want to use --force when switching branches
+#           dontuseforce: # optional, default is false
+          # Set this to true if you don't want to automatically create the Heroku app
+#           dontautocreate: # optional, default is false
+          # Will deploy using Dockerfile in project root.
+#           usedocker: # optional, default is false
+          # Type of heroku process (web, worker, etc). This option only makes sense when usedocker enabled
+#           docker_heroku_process_type: # optional, default is web
+          # A list of args to pass into the Docker build. This option only makes sense when usedocker enabled
+#           docker_build_args: # optional
+          # Set if your app is located in a subdirectory.
+#           appdir: # optional, default is 
+          # A URL to which a healthcheck is performed (checks for 200 request)
+#           healthcheck: # optional, default is 
+          # Value to check for when conducting healthcheck request
+#           checkstring: # optional, default is 
+          # Time (in seconds) to wait before performing healthcheck
+#           delay: # optional, default is 0
+          # Contents of the Procfile to save and deploy
+#           procfile: # optional, default is 
+          # When set to true this will attempt to rollback to the previous release if the healthcheck fails
+#           rollbackonhealthcheckfailed: # optional, default is false
+          # Path to an localized env file
+#           env_file: # optional, default is 
+          # Set to true if you want the action to just login to Heroku and nothing else
+#           justlogin: # optional, default is false
+          # The region in which you would like to deploy a server
+#           region: # optional, default is 
+          # Set stack of your heroku app if you need to change.Default : heroku-20
+#           stack: # optional, default is 
+          # If deploying to an organization, then specify the name of the team or organization here
+#           team: # optional, default is 
